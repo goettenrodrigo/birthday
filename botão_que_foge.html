@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relaxamento para Profissional de Dados</title>
+
+<style>
+    body {
+        background: #c0c0c0;
+        font-family: "MS Sans Serif", Arial, sans-serif;
+        text-align: center;
+        padding-top: 80px;
+    }
+
+    .window {
+        background: #ececec;
+        width: 330px;
+        margin: auto;
+        border: 2px solid #000;
+        box-shadow: 4px 4px #555;
+        padding-bottom: 20px;
+    }
+
+    .title-bar {
+        background: navy;
+        color: white;
+        padding: 5px;
+        font-weight: bold;
+        text-align: left;
+        padding-left: 10px;
+    }
+
+    #runawayBtn {
+        margin-top: 30px;
+        padding: 10px;
+        background: #dcdcdc;
+        border: 2px solid black;
+        cursor: pointer;
+        position: absolute;
+        transition: 0.15s;
+        font-size: 14px;
+    }
+
+    #message {
+        margin-top: 30px;
+        font-size: 20px;
+        display: none;
+        font-weight: bold;
+    }
+</style>
+</head>
+<body>
+
+<div class="window">
+    <div class="title-bar">Painel de Relaxamento</div>
+    <p style="padding: 20px;">
+        Para relaxar, basta clicar no botão abaixo:<br>
+        (se conseguir 😌)
+    </p>
+</div>
+
+<button id="runawayBtn">Resolver solicitações e desinstalar o Teams</button>
+
+<div id="message">🎉 PARABÉNS! Você desinstalou o Teams (na sua imaginação). Agora pode relaxar. 😎</div>
+
+<script>
+    const btn = document.getElementById("runawayBtn");
+    const msg = document.getElementById("message");
+
+    function moveButton() {
+        const maxX = window.innerWidth - btn.offsetWidth - 40;
+        const maxY = window.innerHeight - btn.offsetHeight - 40;
+
+        const newX = Math.random() * maxX;
+        const newY = Math.random() * maxY;
+
+        btn.style.left = newX + "px";
+        btn.style.top = newY + "px";
+    }
+
+    btn.addEventListener("mouseenter", moveButton);
+
+    btn.addEventListener("click", () => {
+        msg.style.display = "block";
+        btn.style.display = "none";
+    });
+
+    // posição inicial random
+    moveButton();
+</script>
+
+</body>
+</html>

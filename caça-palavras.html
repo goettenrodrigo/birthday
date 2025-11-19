@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caça-Palavras Especial</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #fafafa;
+        text-align: center;
+        padding: 20px;
+    }
+
+    h1 { margin-bottom: 5px; }
+
+    #board {
+        display: grid;
+        gap: 3px;
+        justify-content: center;
+        margin-top: 20px;
+        touch-action: none;
+    }
+
+    .cell {
+        width: 32px;
+        height: 32px;
+        background: white;
+        border: 1px solid #ccc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        user-select: none;
+    }
+
+    .dragging {
+        background: #cfe3ff !important;
+    }
+
+    .found {
+        background: yellow !important;
+    }
+
+    #wordlist {
+        font-size: 18px;
+        list-style: none;
+        padding: 0;
+        margin-top: 20px;
+    }
+
+    .done {
+        text-decoration: line-through;
+        color: green;
+        font-weight: bold;
+    }
+</style>
+</head>
+<body>
+
+<h1>🧩 Caça-Palavras Tech • Especial de Aniversário 🎉</h1>
+<p>Arraste para selecionar as palavras!</p>
+
+<div id="board"></div>
+
+<h2>Palavras para encontrar:</h2>
+<ul id="wordlist"></ul>
+
+<script>
+// ---------------- CONFIGURAÇÃO ----------------
+
+const words = [
+    "ANIVERSARIO",
+    "FELICIDADES",
+    "DADOS",
+    "TECNOLOGIA",
+    "INTELIGENCIA",
+    "AILOS",
+    "CIVIA",
+    "UBOTS",
+    "COOPERADOS",
+    "INSIGHTS",
+    "CODIGO",
+    "ANALISE"
+];
+
+const size = 15;
+let board = Array(size).fill().map(() => Array(size).fill(""));
+
+// ----------- Posicionar palavras -----------
+
+function placeWord(word) {
+    const directions = [
+        [1,0], [0,1], [1,1], [-1,1]
+    ];
+
+    let placed = false;
+
+    while (!placed) {
+        const dir = directions[Math.floor(Math.random()*directions.length)];
+        const row = Math.floor(Math.random()*size);
+        const col = Math.floor(Math.random()*size);
+
+        let fits = true;
+
+        for (let i=0; i<word.length; i++) {
+            const r = row + dir[0]*i;
+            const c = col + dir[1]*i;
+
+            if (r<0 || r>=size || c<0 || c>=size) { fits = false; break; }
+            if (board[r][c] !== "" && board[r][c] !== word[i]) { fits=false; break; }
+        }
+
+        if (!fits) continue;
+
+        for (let i=0; i<word.length; i++) {
+            const r = row + dir[0]*i;
+            const c = col + dir[1]*i;
+            board[r][c] = word[i];
+        }
+
+        placed = true;
+    }
+}
+
+words.forEach(w => placeWord(w));
+
+// ----------- Preencher espaços vazios -----------
+
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+for (let r=0; r<size; r++) {
+    for (let c=0; c<size; c++) {
+        if (board[r][c] === "") {
+            board[r][c] = alphabet[Math.floor(Math.random()*alphabet.length)];
+        }
+    }
+}
+
+// ----------- Renderizar tabuleiro -----------
+
+const boardDiv = document.getElementById("board");
+boardDiv.style.gridTemplateColumns = `repeat(${size}, 32px)`;
+
+function renderBoard() {
+    boardDiv.innerHTML = "";
+
+    for (let r=0; r<size; r++) {
+        for (let c=0; c<size; c++) {
+
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.textContent = board[r][c];
+            cell.dataset.row = r;
+            cell.dataset.col = c;
+
+            boardDiv.appendChild(cell);
+        }
+    }
+}
+
+renderBoard();
+
+// ----------------- Seleção por arrasto -----------------
+
+let isDragging = false;
+let dragCells = [];
+
+boardDiv.addEventListener("pointerdown", e => {
+    if (!e.target.classList.contains("cell")) return;
+
+    isDragging = true;
+    dragCells = [e.target];
+    e.target.classList.add("dragging");
+});
+
+boardDiv.addEventListener("pointermove", e => {
+    if (!isDragging) return;
+    const cell = document.elementFromPoint(e.clientX, e.clientY);
+    if (cell && cell.classList.contains("cell") && !dragCells.includes(cell)) {
+        dragCells.push(cell);
+        cell.classList.add("dragging");
+    }
+});
+
+boardDiv.addEventListener("pointerup", e => {
+    if (!isDragging) return;
+    isDragging = false;
+
+    let text = dragCells.map(c => c.textContent).join("");
+    let reversed = text.split("").reverse().join("");
+
+    if (words.includes(text) || words.includes(reversed)) {
+        dragCells.forEach(c => c.classList.add("found"));
+        const li = document.querySelector(`[data-word="${text}"], [data-word="${reversed}"]`);
+        if (li) li.classList.add("done");
+    }
+
+    dragCells.forEach(c => c.classList.remove("dragging"));
+    dragCells = [];
+});
+
+// ---------------- Lista de palavras ----------------
+
+const list = document.getElementById("wordlist");
+words.forEach(w => {
+    const li = document.createElement("li");
+    li.textContent = w;
+    li.dataset.word = w;
+    list.appendChild(li);
+});
+</script>
+
+</body>
+</html>

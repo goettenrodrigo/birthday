@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Caça-Bug Ridículo — Feliz Aniversário, Rafa!</title>
+<style>
+  :root{
+    --bg: linear-gradient(180deg,#f8fbff,#e9f7ef);
+    --panel:#ffffff;
+    --accent:#0b84ff;
+    --ok:#16a34a;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: var(--bg);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    color:#0f172a;
+  }
+  .wrap{
+    width:100%;
+    max-width:1100px;
+    background:var(--panel);
+    border-radius:12px;
+    box-shadow:0 12px 40px rgba(2,6,23,0.08);
+    overflow:hidden;
+  }
+
+  header{
+    padding:18px 20px;
+    display:flex;
+    gap:16px;
+    align-items:center;
+    justify-content:space-between;
+    background:linear-gradient(90deg,#fff,#f6fbff);
+  }
+  .title{ display:flex; gap:14px; align-items:center; }
+  .logo{
+    width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#86efac,#34d399);
+    display:flex;align-items:center;justify-content:center;font-weight:900;color:#083344;font-size:20px;
+    box-shadow: inset 0 -6px 12px rgba(0,0,0,0.06);
+  }
+  h1{ margin:0;font-size:18px }
+  p.lead{ margin:0;color:#334155;font-size:13px }
+
+  .controls{ display:flex; gap:10px; align-items:center; }
+  button{
+    background:var(--accent); color:#fff; border:0; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:700;
+  }
+  button.ghost{ background:transparent; color:var(--accent); border:1px solid rgba(11,132,255,0.12) }
+
+  /* play area */
+  .play-area{
+    position:relative;
+    height:60vh;
+    min-height:420px;
+    background:linear-gradient(180deg,#f7fcff,#f0fff3);
+    display:block;
+    overflow:hidden;
+  }
+
+  /* HUD */
+  .hud{
+    position:absolute; left:14px; top:14px; z-index:40; display:flex; gap:10px; align-items:center;
+  }
+  .badge{
+    background:rgba(255,255,255,0.85);
+    padding:8px 10px;border-radius:8px;border:1px solid rgba(2,6,23,0.04);
+    font-weight:700; color:#0f172a; font-size:14px;
+  }
+
+  /* bugs */
+  .bug{
+    position:absolute;
+    width:56px;height:56px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:34px; user-select:none; touch-action:none;
+    transform-origin:center;
+    cursor:pointer;
+    transition: transform .08s linear;
+    z-index:20;
+  }
+  .bug:active{ transform: scale(.88) rotate(-6deg); }
+
+  /* pop animation */
+  .pop {
+    animation: pop 420ms ease forwards;
+  }
+  @keyframes pop{
+    0%{ transform: scale(1); opacity:1; filter:brightness(1) }
+    50%{ transform: scale(1.6) rotate(20deg); opacity:1; filter:brightness(1.2) }
+    100%{ transform: scale(0.2) rotate(90deg); opacity:0; filter:blur(3px) }
+  }
+
+  /* finish modal */
+  .modal{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:60;
+    background:linear-gradient(rgba(2,6,23,0.12), rgba(2,6,23,0.05));
+    pointer-events:none;
+  }
+  .card{
+    pointer-events:auto;
+    background: white; padding:24px; border-radius:12px; width:min(680px,92%); text-align:center;
+    box-shadow: 0 18px 50px rgba(2,6,23,0.12);
+  }
+  .card h2{ margin:0 0 8px 0; font-size:22px; color:#064e3b }
+  .card p{ margin:0 0 18px 0; color:#0f172a }
+  .confetti{ position:absolute; inset:0; pointer-events:none; z-index:70 }
+
+  footer{ padding:14px 20px; display:flex; justify-content:space-between; align-items:center; gap:12px; background:#fff; border-top:1px solid rgba(2,6,23,0.03) }
+  footer small{ color:#475569 }
+  @media (max-width:720px){
+    .bug{ width:46px;height:46px; font-size:28px }
+    .hud{ left:8px; top:8px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap" role="application" aria-label="Caça-Bug Ridículo">
+    <header>
+      <div class="title">
+        <div class="logo">BG</div>
+        <div>
+          <h1>Caça-Bug Ridículo</h1>
+          <p class="lead">Clique (ou toque) nos bugs até eliminá-los todos. Feliz aniversário, Rafa! 🎉</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="restart">Recomeçar</button>
+        <button id="hint" class="ghost">Dica divertida</button>
+      </div>
+    </header>
+
+    <main class="play-area" id="play">
+      <div class="hud">
+        <div class="badge">Bugs restantes: <span id="leftCount">0</span></div>
+        <div class="badge">Eliminados: <span id="killedCount">0</span></div>
+        <div class="badge">Tempo: <span id="timer">0.0s</span></div>
+      </div>
+
+      <!-- bugs are injected here -->
+      <div id="bugsContainer"></div>
+
+      <!-- finish modal (hidden) -->
+      <div id="modal" class="modal" style="display:none">
+        <div class="card" role="dialog" aria-modal="true" aria-labelledby="finishTitle">
+          <h2 id="finishTitle">Missão concluída! 🎯</h2>
+          <p> Parabéns, Rafa! Agora pode respirar tranquilo, você acabou com os bugs no sistema!.</p>
+          <div style="display:flex;gap:10px;justify-content:center;margin-top:12px">
+            <button id="playAgain">Jogar de novo</button>
+            <button id="closeModal" class="ghost">Fechar</button>
+          </div>
+        </div>
+      </div>
+
+      <canvas id="confetti" class="confetti"></canvas>
+    </main>
+
+    <footer>
+      <small>Joguinho para relaxar (ou não).</small>
+      <small>Toque nos bugs — eles se movem rápido!</small>
+    </footer>
+  </div>
+
+<script>
+/* ====== Configuração ====== */
+const BUG_COUNT = 20;              // número de bugs
+const SPEED_MIN = 0.8;            // px per frame factor
+const SPEED_MAX = 2.6;
+const PLAY = document.getElementById('play');
+const CONTAINER = document.getElementById('bugsContainer');
+const leftCount = document.getElementById('leftCount');
+const killedCount = document.getElementById('killedCount');
+const timerEl = document.getElementById('timer');
+const modal = document.getElementById('modal');
+const restartBtn = document.getElementById('restart');
+const hintBtn = document.getElementById('hint');
+const playAgain = document.getElementById('playAgain');
+const closeModal = document.getElementById('closeModal');
+const confettiCanvas = document.getElementById('confetti');
+
+let bugs = [];
+let eliminated = 0;
+let startTime = null;
+let timerRAF = null;
+let animateRAF = null;
+
+/* ====== Utilities ====== */
+function rand(min,max){ return Math.random()*(max-min)+min; }
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+/* ====== Create bugs ====== */
+const BUG_EMOJI = ['👾'];
+
+function makeBug(i){
+  const el = document.createElement('div');
+  el.className = 'bug';
+  el.dataset.id = i;
+  // choose a silly label
+  el.innerText = BUG_EMOJI[i % BUG_EMOJI.length];
+  // initial position inside play area bounds
+  const rect = PLAY.getBoundingClientRect();
+  const w = rect.width, h = rect.height;
+  const size = (window.innerWidth < 720) ? 46 : 56;
+  const x = rand(10, Math.max(10, w - size - 10));
+  const y = rand(60, Math.max(60, h - size - 20));
+
+  // random velocity
+  const vx = (Math.random() < 0.5 ? -1 : 1) * rand(SPEED_MIN, SPEED_MAX);
+  const vy = (Math.random() < 0.5 ? -1 : 1) * rand(SPEED_MIN, SPEED_MAX);
+
+  // playful wobble frequency & amplitude
+  const wobble = rand(0.4,1.6);
+
+  const obj = { el, x, y, vx, vy, w:size, h:size, wobble, id:i, alive:true };
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+
+  // click or touch removes
+  el.addEventListener('pointerdown', (ev) => {
+    ev.stopPropagation();
+    if(!obj.alive) return;
+    eliminateBug(obj);
+  }, {passive:true});
+
+  CONTAINER.appendChild(el);
+  bugs.push(obj);
+}
+
+/* ====== eliminate & pop ====== */
+function eliminateBug(obj){
+  if(!obj.alive) return;
+  obj.alive = false;
+  obj.el.classList.add('pop');
+  eliminated++;
+  killedCount.textContent = eliminated;
+  leftCount.textContent = Math.max(0, BUG_COUNT - eliminated);
+  // remove element after animation
+  setTimeout(()=> {
+    try{ obj.el.remove(); }catch(e){}
+    checkVictory();
+  }, 420);
+}
+
+/* ====== movement loop ====== */
+function step(){
+  const rect = PLAY.getBoundingClientRect();
+  const width = rect.width, height = rect.height;
+  for(const b of bugs){
+    if(!b.alive) continue;
+    b.x += b.vx;
+    b.y += b.vy;
+    // wobble slight rotation
+    const angle = Math.sin((performance.now()/1000) * b.wobble + b.id) * 8;
+    b.el.style.transform = `rotate(${angle}deg)`;
+
+    // bounce off borders (keep inside play area)
+    const margin = 6;
+    if(b.x <= margin){ b.x = margin; b.vx = Math.abs(b.vx); }
+    if(b.y <= margin + 36){ b.y = margin + 36; b.vy = Math.abs(b.vy); } // avoid header overlap
+    if(b.x + b.w >= width - margin){ b.x = width - b.w - margin; b.vx = -Math.abs(b.vx); }
+    if(b.y + b.h >= height - margin){ b.y = height - b.h - margin; b.vy = -Math.abs(b.vy); }
+
+    // occasionally random nudge
+    if(Math.random() < 0.007) b.vx *= (Math.random() < 0.5 ? 0.8 : 1.2);
+    if(Math.random() < 0.007) b.vy *= (Math.random() < 0.5 ? 0.8 : 1.2);
+
+    b.el.style.left = b.x + 'px';
+    b.el.style.top = b.y + 'px';
+  }
+  animateRAF = requestAnimationFrame(step);
+}
+
+/* ====== Timer ====== */
+function tickTimer(){
+  if(!startTime) return;
+  const s = (performance.now() - startTime)/1000;
+  timerEl.textContent = s.toFixed(1) + 's';
+  timerRAF = requestAnimationFrame(tickTimer);
+}
+
+/* ====== Victory check ====== */
+function checkVictory(){
+  if(eliminated >= BUG_COUNT){
+    // stop animation & timer
+    cancelAnimationFrame(animateRAF);
+    cancelAnimationFrame(timerRAF);
+    // small delay then show modal & confetti
+    setTimeout(()=> {
+      showModal();
+      launchConfetti();
+    }, 350);
+  }
+}
+
+/* ====== Modal & confetti ====== */
+function showModal(){
+  modal.style.display = 'flex';
+  modal.style.pointerEvents = 'auto';
+}
+
+function hideModal(){
+  modal.style.display = 'none';
+  confettiCtx && clearConfetti();
+}
+
+/* ====== Confetti (simple canvas) ====== */
+let confettiCtx = null, confettiPieces = [];
+
+function initConfetti(){
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+  confettiCtx = confettiCanvas.getContext('2d');
+}
+
+function launchConfetti(){
+  if(!confettiCtx) initConfetti();
+  confettiPieces = [];
+  const colors = ['#f97316','#ef4444','#f59e0b','#10b981','#3b82f6','#a78bfa'];
+  for(let i=0;i<120;i++){
+    confettiPieces.push({
+      x: rand(0, confettiCanvas.width),
+      y: rand(-confettiCanvas.height, 0),
+      vy: rand(1, 5),
+      vx: rand(-2,2),
+      size: rand(6,14),
+      color: colors[randInt(0, colors.length-1)],
+      rot: rand(0,360),
+      spin: rand(-6,6)
+    });
+  }
+  requestAnimationFrame(confettiLoop);
+}
+
+let confettiRAF = null;
+function confettiLoop(){
+  confettiCtx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+  for(const p of confettiPieces){
+    p.x += p.vx;
+    p.y += p.vy;
+    p.rot += p.spin;
+    confettiCtx.save();
+    confettiCtx.translate(p.x, p.y);
+    confettiCtx.rotate(p.rot * Math.PI / 180);
+    confettiCtx.fillStyle = p.color;
+    confettiCtx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+    confettiCtx.restore();
+  }
+  // keep running until pieces off-screen
+  confettiPieces = confettiPieces.filter(p => p.y < confettiCanvas.height + 40);
+  if(confettiPieces.length > 0) confettiRAF = requestAnimationFrame(confettiLoop);
+  else confettiRAF = null;
+}
+
+function clearConfetti(){
+  confettiCtx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+}
+
+/* ====== Start & Reset ====== */
+function startGame(){
+  // clear previous
+  CONTAINER.innerHTML = '';
+  bugs = []; eliminated = 0;
+  leftCount.textContent = BUG_COUNT;
+  killedCount.textContent = 0;
+  timerEl.textContent = '0.0s';
+  startTime = performance.now();
+  // create bugs
+  for(let i=0;i<BUG_COUNT;i++) makeBug(i);
+  // start loops
+  cancelAnimationFrame(animateRAF);
+  cancelAnimationFrame(timerRAF);
+  animateRAF = requestAnimationFrame(step);
+  timerRAF = requestAnimationFrame(tickTimer);
+  // resize confetti canvas
+  initConfetti();
+  modal.style.display = 'none';
+}
+
+/* ====== Controls ====== */
+restartBtn.addEventListener('click', ()=> startGame());
+playAgain.addEventListener('click', ()=> startGame());
+closeModal.addEventListener('click', ()=> hideModal());
+
+hintBtn.addEventListener('click', ()=> {
+  alert('Dica: tente cercá-los! Alguns bugs gostam de colidir nas bordas.');
+});
+
+/* ====== Responsiveness: recompute boundaries on resize ====== */
+window.addEventListener('resize', ()=>{
+  if(confettiCanvas) initConfetti();
+});
+
+/* ====== Initialize ====== */
+startGame();
+</script>
+</body>
+</html>
