@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Surpresa Rafa - Windows98</title>
+<style>
+  :root{
+    --bg:#008080;
+    --win:#c0c0c0;
+    --title:#000080;
+    --text:#000;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:"MS Sans Serif", Arial, sans-serif;background:var(--bg)}
+  .stage{
+    position:relative;
+    width:100%;
+    height:100vh;
+    overflow:hidden;
+  }
+
+  /* Janela base */
+  .window{
+    width:360px;
+    max-width:92vw;
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%) translateY(8px) scale(.98);
+    background:var(--win);
+    border:2px solid #000;
+    box-shadow:4px 4px 0 #000;
+    opacity:0;
+    transition:all 220ms ease;
+  }
+  .window.show{ opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
+
+  .title-bar{
+    background:var(--title);
+    color:#fff;
+    padding:6px 8px;
+    font-weight:bold;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .title-bar .title{ font-size:14px }
+  .close-btn{
+    background:var(--win);
+    border:1px solid #fff;
+    width:18px;height:18px;text-align:center;line-height:16px;cursor:pointer;
+  }
+  .content{ padding:12px 14px; color:var(--text); font-size:14px; }
+
+  .ok-btn{
+    margin-top:12px;
+    background:var(--win);
+    border:2px outset #fff;
+    padding:6px 14px;
+    cursor:pointer;
+  }
+
+  /* Loading specifics */
+  #loadingWindow .progress-box{ border:2px inset #fff; background:#fff; height:18px; margin-top:10px; }
+  #loadingWindow .progress-fill{ background:#000080; height:100%; width:0%; transition:width .2s linear; }
+
+  /* BSOD */
+  #bsod{
+    display:none;
+    position:fixed; inset:0;
+    background:#0000AA; color:#fff;
+    font-family:"Lucida Console", monospace;
+    padding:36px; z-index:9999; white-space:pre-wrap; font-size:16px;
+  }
+
+  @media (max-width:420px){
+    .content{ font-size:13px }
+    .window{ width:320px }
+  }
+</style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <!-- Loading window (centered) -->
+    <div class="window show" id="loadingWindow" style="top:calc(50% - 140px);">
+      <div class="title-bar">
+        <span class="title">Windows 98 Setup</span>
+        <div class="close-btn" onclick="document.getElementById('loadingWindow').style.display='none'">x</div>
+      </div>
+      <div class="content">
+        Inicializando sequência de aniversário...<br>
+        Carregando: parabéns.dll • alegria.sys • insights.exe
+        <div class="progress-box" aria-hidden="true">
+          <div id="progressFill" class="progress-fill" style="width:0%"></div>
+        </div>
+        <div id="progressLabel" style="margin-top:8px;font-weight:bold">0%</div>
+      </div>
+    </div>
+
+    <!-- Container onde as janelas empilhadas serão adicionadas -->
+    <div id="stackContainer"></div>
+  </div>
+
+  <!-- BSOD overlay (aparece ao fechar a última janela) -->
+  <div id="bsod">
+A fatal exception 0E has occurred at 0028:C0011E36 in VXD VMM(01) +00010E36. The current application will be terminated.
+
+* Press any key to terminate the current application.
+* Press CTRL+ALT+DEL to restart your computer. You will lose any unsaved information.
+
+*** Feliz aniversário, Rafa! (clique para reiniciar) ***
+  </div>
+
+<script>
+  // Mensagens e configuração
+  const preErrors = [
+    'Erro 404: Parabéns antecipados não encontrados.',
+    'Falha crítica: Elogios corrompidos em memória.',
+    'Aviso: Nível de ansiedade da equipe acima do limite.',
+    'Processo estranho detectado: festa_prematura.exe',
+    'Alerta: Buffer de surpresa quase cheio.'
+  ];
+
+  const finalMessage = `🎉 ALERTA DO SISTEMA:\n\nSeu aniversário é só amanhã, mas somos ansiosos — então comemoramos hoje!\n\nFeliz aniversário, Rafa!\n\nQue este novo ciclo traga ainda mais insights, conquistas e ótimos resultados.\n\nObrigado por toda a parceria e por transformar dados em soluções que realmente fazem a diferença.\n\nAproveite muito o seu dia!`;
+
+  // elementos
+  const progressFill = document.getElementById('progressFill');
+  const progressLabel = document.getElementById('progressLabel');
+  const stack = document.getElementById('stackContainer');
+  const loading = document.getElementById('loadingWindow');
+  const bsod = document.getElementById('bsod');
+
+  // animação de carregamento até 90%
+  let pct = 0;
+  const loadingTimer = setInterval(()=>{
+    pct++;
+    if(pct>90) pct = 90;
+    progressFill.style.width = pct + '%';
+    progressLabel.textContent = pct + '%';
+    if(pct >= 90){
+      clearInterval(loadingTimer);
+      setTimeout(()=> {
+        // remove loading e cria stack
+        loading.style.display = 'none';
+        spawnAllWindows();
+      }, 500);
+    }
+  }, 30);
+
+  function spawnAllWindows(){
+    const total = preErrors.length + 1;
+    // Calcular baseY para centralizar o bloco de janelas verticalmente
+    // cada janela tem deslocamento de 18px (para mostrar a pilha)
+    const offsetStep = 18;
+    const blockHeight = (total - 1) * offsetStep; // deslocamentos totais
+    const centerY = window.innerHeight / 2;
+    // top da primeira janela (a mais baixa) para que o conjunto fique centralizado
+    const baseY = centerY - (blockHeight / 2) - 70; // ajusta para ficar visualmente central
+
+    // criar janelas de erro (empilhadas)
+    preErrors.forEach((txt, idx) => {
+      const win = createWindow('Erro', txt, false, idx);
+      const topPos = baseY + idx * offsetStep;
+      win.style.top = (topPos) + 'px';
+      // z-index crescente para que a última fique por cima
+      win.style.zIndex = 100 + idx;
+      stack.appendChild(win);
+      // anima entrada
+      requestAnimationFrame(()=> win.classList.add('show'));
+    });
+
+    // janela final em cima da pilha
+    const finalIdx = preErrors.length;
+    const finalWin = createWindow('Mensagem do Sistema', finalMessage, true, finalIdx);
+    const finalTop = baseY + finalIdx * offsetStep;
+    finalWin.style.top = finalTop + 'px';
+    finalWin.style.zIndex = 100 + finalIdx + 1;
+    stack.appendChild(finalWin);
+    requestAnimationFrame(()=> finalWin.classList.add('show'));
+  }
+
+  // cria elemento de janela
+  function createWindow(title, text, isFinal, idx){
+    const w = document.createElement('div');
+    w.className = 'window';
+    // title bar
+    const tb = document.createElement('div'); tb.className = 'title-bar';
+    const tspan = document.createElement('span'); tspan.className = 'title'; tspan.textContent = title;
+    const close = document.createElement('div'); close.className = 'close-btn'; close.textContent = 'x';
+    tb.appendChild(tspan); tb.appendChild(close);
+    w.appendChild(tb);
+
+    // content
+    const c = document.createElement('div'); c.className = 'content';
+    if(isFinal){
+      // final: permitir quebras e botão OK que mostra BSOD
+      const lines = text.split('\n').map(s => s.trim());
+      lines.forEach(line => {
+        const p = document.createElement('div');
+        p.innerHTML = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        c.appendChild(p);
+      });
+      const ok = document.createElement('button'); ok.className = 'ok-btn'; ok.textContent = 'OK';
+      ok.onclick = () => {
+        // remover todas as janelas e exibir a BSOD
+        Array.from(stack.children).forEach(ch => ch.remove());
+        showBSOD();
+      };
+      c.appendChild(ok);
+    } else {
+      // erro: texto simples + OK que fecha só a sua janela
+      c.textContent = text;
+      const ok = document.createElement('button'); ok.className = 'ok-btn'; ok.textContent = 'OK';
+      ok.onclick = () => w.remove();
+      c.appendChild(ok);
+    }
+    w.appendChild(c);
+
+    // fechar pelo X: se final, abre BSOD; senão remove
+    close.onclick = () => {
+      if(isFinal) showBSOD();
+      else w.remove();
+    };
+
+    return w;
+  }
+
+  function showBSOD(){
+    // esconder qualquer coisa visível (safety) e mostrar overlay
+    document.querySelectorAll('.window').forEach(el => el.style.display = 'none');
+    bsod.style.display = 'block';
+    // clique no BSOD recarrega (simula reinício)
+    bsod.onclick = () => location.reload();
+  }
+
+  // reajustar posição caso o usuário redimensione
+  window.addEventListener('resize', ()=>{
+    // se já existem janelas empilhadas, recalcula top para manter centralizado visual
+    const windows = Array.from(document.querySelectorAll('#stackContainer .window'));
+    if(windows.length === 0) return;
+    const total = windows.length;
+    const offsetStep = 18;
+    const blockHeight = (total - 1) * offsetStep;
+    const centerY = window.innerHeight / 2;
+    const baseY = centerY - (blockHeight / 2) - 70;
+    windows.forEach((w, i) => {
+      w.style.top = (baseY + i * offsetStep) + 'px';
+    });
+  });
+</script>
+</body>
+</html>
