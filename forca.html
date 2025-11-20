@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jogo da Forca - Bandas de Rock</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: linear-gradient(160deg, #0d0d0d, #1a1a1a);
+      color: #fff;
+    }
+    h1 { text-align: center; margin-bottom: 10px; }
+
+    #game-container {
+      width: 100%;
+      max-width: 450px;
+      background: #222;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 0 12px rgba(255,255,255,0.1);
+    }
+
+    #word {
+      font-size: 2rem;
+      letter-spacing: 10px;
+      margin: 20px 0;
+      text-align: center;
+      word-wrap: break-word;
+    }
+
+    #letters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+      gap: 8px;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 10px;
+      font-size: 1.2rem;
+      border: none;
+      background: #444;
+      color: white;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.25s;
+    }
+
+    button:hover { background: #666; }
+    button:disabled { background: #333; cursor: not-allowed; }
+
+    #hangman-canvas {
+      width: 100%;
+      max-width: 260px;
+      margin: auto;
+      display: block;
+    }
+
+    @media (max-width: 480px) {
+      #word { font-size: 1.6rem; letter-spacing: 6px; }
+      button { font-size: 1rem; padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>🎸 Jogo da Forca — Bandas de Rock</h1>
+
+  <div id="game-container">
+    <canvas id="hangman-canvas" width="250" height="250"></canvas>
+    <div id="word"></div>
+    <div id="letters"></div>
+  </div>
+
+  <script>
+    const bandas = [
+      "METALLICA", "NIRVANA", "QUEEN", "LINKIN PARK", "ACDC", "IRON MAIDEN",
+      "RAMONES", "PEARL JAM", "LED ZEPPELIN", "GUNS N ROSES"
+    ];
+
+    let palavra = bandas[Math.floor(Math.random() * bandas.length)];
+    let exibicao = palavra.replace(/[A-Z]/g, "_");
+    let erros = 0;
+
+    const canvas = document.getElementById("hangman-canvas");
+    const ctx = canvas.getContext("2d");
+
+    function drawBase() {
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(20, 230);
+      ctx.lineTo(180, 230);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(60, 230);
+      ctx.lineTo(60, 30);
+      ctx.lineTo(150, 30);
+      ctx.lineTo(150, 60);
+      ctx.stroke();
+    }
+
+    function drawHangman(step) {
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 3;
+
+      if (step === 1) {
+        ctx.beginPath();
+        ctx.arc(150, 80, 20, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (step === 2) {
+        ctx.beginPath();
+        ctx.moveTo(150, 100);
+        ctx.lineTo(150, 150);
+        ctx.stroke();
+      }
+      if (step === 3) {
+        ctx.beginPath();
+        ctx.moveTo(150, 110);
+        ctx.lineTo(130, 140);
+        ctx.stroke();
+      }
+      if (step === 4) {
+        ctx.beginPath();
+        ctx.moveTo(150, 110);
+        ctx.lineTo(170, 140);
+        ctx.stroke();
+      }
+      if (step === 5) {
+        ctx.beginPath();
+        ctx.moveTo(150, 150);
+        ctx.lineTo(130, 190);
+        ctx.stroke();
+      }
+      if (step === 6) {
+        ctx.beginPath();
+        ctx.moveTo(150, 150);
+        ctx.lineTo(170, 190);
+        ctx.stroke();
+      }
+    }
+
+    drawBase();
+
+    document.getElementById("word").textContent = exibicao;
+
+    const letrasDiv = document.getElementById("letters");
+    const alfabeto = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+    alfabeto.forEach(l => {
+      const btn = document.createElement("button");
+      btn.textContent = l;
+      btn.onclick = () => tentativa(l, btn);
+      letrasDiv.appendChild(btn);
+    });
+
+    function tentativa(letra, btn) {
+      btn.disabled = true;
+
+      if (palavra.includes(letra)) {
+        let nova = "";
+        for (let i = 0; i < palavra.length; i++) {
+          nova += palavra[i] === letra ? letra : exibicao[i];
+        }
+        exibicao = nova;
+        document.getElementById("word").textContent = exibicao;
+
+        if (!exibicao.includes("_")) {
+          alert("🎉 Você venceu! A banda era: " + palavra);
+          location.reload();
+        }
+      } else {
+        erros++;
+        drawHangman(erros);
+
+        if (erros === 6) {
+          alert("💀 Você perdeu! A banda era: " + palavra);
+          location.reload();
+        }
+      }
+    }
+  </script>
+</body>
+</html>
